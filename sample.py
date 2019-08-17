@@ -1,4 +1,6 @@
 import math
+import collections
+
 class maps_40:
     intersections = {0: [0.7801603911549438, 0.49474860768712914],
              1: [0.5249831588690298, 0.14953665513987202],
@@ -81,7 +83,7 @@ class maps_40:
  [23, 29, 32],
  [2, 4, 7, 22, 28, 36]]
 
-class node(maps_40):
+class node():
     def __init__(self, node = None, goal = None, Map = None):
         self.goal = goal
         self.node = node
@@ -89,17 +91,27 @@ class node(maps_40):
         self.h = 0
         self.f = 0
         self.Map = Map
-        self.intersection = Map.intersections[node]
-        self.roads = Map.roads[node]
+        self.visited = False
+        self.intersection = self.Map.intersections[node]
+        self.roads = self.Map.roads[node]
         self.children = dict()
+        self.update_distance = 0
 
-    def process_node(self):
+    def add_parent_distance(self, parent = 0, current = 0):
+        self.update_distance = parent + current
+
+    def process_node(self, parent = 0):
         current_node = self.children
         for child in self.roads:
             current_node[child] = node(child, self.goal, self.Map)
-            current_node[child].g = self.calc_g(self.intersection, current_node[child].intersection)
+            current_node[child].g = self.calc_g(self.intersection, current_node[child].intersection) + parent
             current_node[child].h = self.calc_h(current_node[child].intersection)
+            '''try:
+                current_node[child].f = current_node[child].g + current_node[child].h + self.g
+            except:
+            '''
             current_node[child].f = current_node[child].g + current_node[child].h
+
         return
 
     def calc_g(self, node1, node2):
@@ -110,35 +122,68 @@ class node(maps_40):
         x = self.calc_g(node1, self.Map.intersections[self.goal])
         return x
 
+def clean_path(closed = None, node = 0):
+    current = closed[node]
+    path_list = collections.OrderedDict()
+    while current[1].node != current[1].goal:
+        for child in current[1].roads:
+            path_list[str(child)] = closed[child].g
+            clean_path(closed, child)
+    return path_list
 
-class tree(node):
-    def __init__(self, current_node = None):
-        self.root = current_node
-        return
 def shortest_path(M,start,goal):
 
-    open = dict()
-    closed = dict()
-    open[start] = node(start, goal, M)
-    current_node = open[start]
-
+    open = collections.OrderedDict()
+    closed = collections.OrderedDict()
+    #open[start] = node(start, goal, M)
+    current_node = node(start, goal, M)#open[start]
+    closed[start] = node(start, goal, M)
+    table = dict()
+    dummy = dict()
+    '''if current_node.goal == current_node.node:
+        result.append(current_node.goal)
+        print(result)
+        return result
+        '''
+    count = 0
     while current_node:
-        current_node.process_node()
+        if count == 0:
+            current_node.process_node(0)
+            count += 1
+        else:
+            current_node.process_node(current_node.g)
         if current_node.children:
-            min_f = 99999
+            min_f = ''
             for child in current_node.children:
-                if min_f == 99999:
+                path = str(current_node.node) + " " + str(child)
+                if child in closed:
+                    continue
+                if min_f == '':
                     min_f = current_node.children[child]
                 else:
                     if current_node.children[child].f < min_f.f:
                         min_f = current_node.children[child]
+                table[path] = {}
+                table[path]["route"] = str(child)
+                table[path]["weight"] = current_node.children[child].g
         current_node = min_f
         closed[current_node.node] = current_node
-        print(closed)
+        if current_node.node in open:
+            open.pop(current_node.node)
+        if current_node.goal == current_node.node:
+            print('Congrats ')
+            for key in closed.keys():
+                print(key)
+            return closed.keys()
 
-    print("shortest path called")
-    pass
+        current_node.process_node()
+        for child in current_node.children:
+            if child in closed:
+                continue
+            if child in open:
+                if current_node.children[child].g > open[child].g:
+                    continue
+            open[child] = current_node.children[child]
 
 
-
-shortest_path(maps_40, 5, 34)
+shortest_path(maps_40, 8, 24)

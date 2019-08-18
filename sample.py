@@ -91,22 +91,24 @@ class node():
         self.h = 0
         self.f = 0
         self.Map = Map
-        self.visited = False
         self.intersection = self.Map.intersections[node]
         self.roads = self.Map.roads[node]
         self.children = dict()
-        self.update_distance = 0
+        self.path = None
+        return
 
-    def add_parent_distance(self, parent = 0, current = 0):
-        self.update_distance = parent + current
-
-    def process_node(self, parent = 0):
+    def process_node(self, prev_g = 0):
         current_node = self.children
+        if self.path is None:
+            self.path = [self.node]
+
         for child in self.roads:
             current_node[child] = node(child, self.goal, self.Map)
-            current_node[child].g = self.calc_g(self.intersection, current_node[child].intersection) + parent
+            current_node[child].g = self.calc_g(self.intersection, current_node[child].intersection) + prev_g
             current_node[child].h = self.calc_h(current_node[child].intersection)
             current_node[child].f = current_node[child].g + current_node[child].h
+            current_node[child].path = self.path.copy()
+            current_node[child].path.append(child)
         return
 
     def calc_g(self, node1, node2):
@@ -118,7 +120,6 @@ class node():
         return x
 
 def shortest_path(M,start,goal):
-
     open = collections.OrderedDict()
     closed = collections.OrderedDict()
     current_node = node(start, goal, M)
@@ -126,29 +127,39 @@ def shortest_path(M,start,goal):
     count = 0
     while current_node:
         if count == 0:
-            current_node.process_node(0)
             count += 1
         else:
             current_node.process_node(current_node.g)
         if current_node.children:
             min_f = ''
-            for child in current_node.children:
+            if open:
+                adj = open
+                for child in current_node.children:
+                    if child in adj.keys():
+                        if adj[child].g > current_node.children[child].g:
+                            adj[child] = current_node.children[child]
+                    else:
+                        adj[child] = current_node.children[child]
+            for child in adj:
                 if child in closed:
                     continue
                 if min_f == '':
-                    min_f = current_node.children[child]
+                    min_f = adj[child]
                 else:
-                    if current_node.children[child].f < min_f.f:
-                        min_f = current_node.children[child]
-        current_node = min_f
-        closed[current_node.node] = current_node
-        if current_node.node in open:
-            open.pop(current_node.node)
+                    if adj[child].f < min_f.f:
+                        min_f = adj[child]
+            current_node = min_f
+            closed[current_node.node] = current_node
+            if current_node.node in open:
+                open.pop(current_node.node)
+            current_node.process_node(current_node.g)
+        else:
+            current_node.process_node(current_node.g)
+
+
         if current_node.goal == current_node.node:
             print('Congrats ')
-            for key in closed.keys():
-                print(key)
-            return closed.keys()
+            return min_f.path
 
         for child in current_node.children:
             if child in closed:
@@ -159,4 +170,5 @@ def shortest_path(M,start,goal):
             open[child] = current_node.children[child]
 
 
-shortest_path(maps_40, 8, 24)
+path = shortest_path(maps_40, 8, 24)
+print(path)

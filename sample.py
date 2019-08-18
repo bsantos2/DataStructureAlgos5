@@ -84,28 +84,27 @@ class maps_40:
  [2, 4, 7, 22, 28, 36]]
 
 class node():
-    def __init__(self, node = None, goal = None, Map = None):
+    def __init__(self, Map, node = None, goal = None):
         self.goal = goal
         self.node = node
         self.g = 0
         self.h = 0
         self.f = 0
-        self.Map = Map
-        self.intersection = self.Map.intersections[node]
-        self.roads = self.Map.roads[node]
+        self.intersection = Map.intersections[node]
+        self.roads = Map.roads[node]
         self.children = dict()
         self.path = None
         return
 
-    def process_node(self, prev_g = 0):
+    def process_node(self, Map, prev_g = 0):
         current_node = self.children
         if self.path is None:
             self.path = [self.node]
 
         for child in self.roads:
-            current_node[child] = node(child, self.goal, self.Map)
+            current_node[child] = node(Map, child, self.goal)
             current_node[child].g = self.calc_g(self.intersection, current_node[child].intersection) + prev_g
-            current_node[child].h = self.calc_h(current_node[child].intersection)
+            current_node[child].h = self.calc_h(Map, current_node[child].intersection)
             current_node[child].f = current_node[child].g + current_node[child].h
             current_node[child].path = self.path.copy()
             current_node[child].path.append(child)
@@ -115,51 +114,66 @@ class node():
         x = math.sqrt((node2[0] - node1[0]) ** 2 + (node2[1] - node1[1]) ** 2)
         return x
 
-    def calc_h(self, node1):
-        x = self.calc_g(node1, self.Map.intersections[self.goal])
+    def calc_h(self, Map, node1):
+        x = self.calc_g(node1, Map.intersections[self.goal])
         return x
 
-def shortest_path(M,start,goal):
+def get_min_path(open, current_node, closed):
+    '''
+    :param open: list of nodes that have been visited but are stored anyway in case they have shorter path later
+    :param current_node: current node visited
+    :param closed: list of nodes that had been visited and potentially part of shortest path
+    :return: shortest path from adjacent = open nodes and current node's children
+    '''
+    min_f = ''
+    if open:
+        adj = open
+        for child in current_node.children:
+            if child in adj.keys():
+                if adj[child].g > current_node.children[child].g:
+                    adj[child] = current_node.children[child]
+            else:
+                adj[child] = current_node.children[child]
+    for child in adj:
+        if child in closed:
+            continue
+        if min_f == '':
+            min_f = adj[child]
+        else:
+            if adj[child].f < min_f.f:
+                min_f = adj[child]
+    return min_f
+
+def shortest_path(Map,start,goal):
+    '''
+    :param Map: Map of nodes, their future routes and corresponding intersections
+    :param start: start node
+    :param goal: stop or goal node
+    :return: a list of nodes that compose shortest path from start to goal
+
+    Wikipedia a* algorithm + Djikstra (idea for storing adjacent nodes)
+    '''
     open = collections.OrderedDict()
     closed = collections.OrderedDict()
-    current_node = node(start, goal, M)
-    closed[start] = node(start, goal, M)
-    count = 0
+
+    current_node = node(Map, start, goal)
+    closed[start] = node(Map, start, goal)
+
     while current_node:
-        if count == 0:
-            count += 1
-        else:
-            current_node.process_node(current_node.g)
+        if open:
+            current_node.process_node(Map, current_node.g)
         if current_node.children:
-            min_f = ''
-            if open:
-                adj = open
-                for child in current_node.children:
-                    if child in adj.keys():
-                        if adj[child].g > current_node.children[child].g:
-                            adj[child] = current_node.children[child]
-                    else:
-                        adj[child] = current_node.children[child]
-            for child in adj:
-                if child in closed:
-                    continue
-                if min_f == '':
-                    min_f = adj[child]
-                else:
-                    if adj[child].f < min_f.f:
-                        min_f = adj[child]
-            current_node = min_f
+            current_node = get_min_path(open, current_node, closed)
             closed[current_node.node] = current_node
             if current_node.node in open:
                 open.pop(current_node.node)
-            current_node.process_node(current_node.g)
+            current_node.process_node(Map, current_node.g)
         else:
-            current_node.process_node(current_node.g)
-
+            current_node.process_node(Map, current_node.g)
 
         if current_node.goal == current_node.node:
             print('Congrats ')
-            return min_f.path
+            return current_node.path
 
         for child in current_node.children:
             if child in closed:

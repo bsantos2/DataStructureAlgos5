@@ -106,12 +106,7 @@ class node():
             current_node[child] = node(child, self.goal, self.Map)
             current_node[child].g = self.calc_g(self.intersection, current_node[child].intersection) + parent
             current_node[child].h = self.calc_h(current_node[child].intersection)
-            '''try:
-                current_node[child].f = current_node[child].g + current_node[child].h + self.g
-            except:
-            '''
             current_node[child].f = current_node[child].g + current_node[child].h
-
         return
 
     def calc_g(self, node1, node2):
@@ -122,29 +117,12 @@ class node():
         x = self.calc_g(node1, self.Map.intersections[self.goal])
         return x
 
-def clean_path(closed = None, node = 0):
-    current = closed[node]
-    path_list = collections.OrderedDict()
-    while current[1].node != current[1].goal:
-        for child in current[1].roads:
-            path_list[str(child)] = closed[child].g
-            clean_path(closed, child)
-    return path_list
-
 def shortest_path(M,start,goal):
 
     open = collections.OrderedDict()
     closed = collections.OrderedDict()
-    #open[start] = node(start, goal, M)
-    current_node = node(start, goal, M)#open[start]
+    current_node = node(start, goal, M)
     closed[start] = node(start, goal, M)
-    table = dict()
-    dummy = dict()
-    '''if current_node.goal == current_node.node:
-        result.append(current_node.goal)
-        print(result)
-        return result
-        '''
     count = 0
     while current_node:
         if count == 0:
@@ -155,7 +133,6 @@ def shortest_path(M,start,goal):
         if current_node.children:
             min_f = ''
             for child in current_node.children:
-                path = str(current_node.node) + " " + str(child)
                 if child in closed:
                     continue
                 if min_f == '':
@@ -163,9 +140,6 @@ def shortest_path(M,start,goal):
                 else:
                     if current_node.children[child].f < min_f.f:
                         min_f = current_node.children[child]
-                table[path] = {}
-                table[path]["route"] = str(child)
-                table[path]["weight"] = current_node.children[child].g
         current_node = min_f
         closed[current_node.node] = current_node
         if current_node.node in open:
@@ -176,7 +150,6 @@ def shortest_path(M,start,goal):
                 print(key)
             return closed.keys()
 
-        current_node.process_node()
         for child in current_node.children:
             if child in closed:
                 continue
